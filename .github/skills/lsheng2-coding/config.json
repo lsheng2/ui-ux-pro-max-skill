@@ -1,0 +1,5 @@
+{
+  "max_review_rounds": 20,
+  "preferred_model": "gpt-5.5",
+  "reviewer_agent": "general-purpose"
+}

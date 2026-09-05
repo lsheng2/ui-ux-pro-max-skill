@@ -196,6 +196,43 @@ Active 集合包括 43 个通用视觉家族、2 个移动端专用风格、3 �
 
 完整分类及 provenance 元数据见 [`styles.csv`](src/ui-ux-pro-max/data/styles.csv)。
 
+### Catalog Capture 与风格注册
+
+安装后的 `ui-ux-pro-max` Skill 现在在 `SKILL.md` 中提供 catalog management
+动作。默认应通过自然语言调用 Skill；Python 脚本是内部 deterministic backend
+和测试边界，不是主要用户接口。
+
+| 目标 | 示例请求 |
+|------|----------|
+| 捕获网站风格参考 | `Use ui-ux-pro-max to capture https://example.com as a third-party style reference.` |
+| 捕获本地 HTML 或项目 UI | `Use ui-ux-pro-max to capture this repo's dashboard UI and draft a supplemental style candidate named internal-dashboard-dense.` |
+| Normalize capture | `Use ui-ux-pro-max to normalize captures/example-dashboard/capture.json and summarize selected versus excluded signals.` |
+| 生成 draft style row | `Use ui-ux-pro-max to draft a style row from captures/example-dashboard/normalized.json.` |
+| 列出 registered + draft styles | `/ui-ux-pro-max list styles` |
+| 查看单个 style | `/ui-ux-pro-max show style minimalism-and-swiss-style` |
+| 注册已审核 draft | `Use ui-ux-pro-max to register the reviewed draft style <style-id> into the source catalog.` |
+
+Capture 流程会先生成可审核 artifact：
+
+1. `capture.json` 保存 source metadata、legal mode、viewports、结构化设计信号、
+   evidence path 和 exclusions。
+2. `normalized.json` 选择重复出现的可复用 tokens，并排除一次性长尾值。
+3. `style-row.draft.csv` 与 `provenance.draft.json` 是候选 artifact，只供审核；
+   它们不会修改 catalog。
+4. `register-style` 是单独的显式动作。它必须确认准确的 style ID，并且只能写入
+   fork/source-of-truth 的 `src/ui-ux-pro-max/data` 目录，不能写入 `.agents`、
+   `.claude`、`.cursor`、`.github/prompts`、`.kiro` 或 `cli/assets` 等安装/生成镜像。
+
+第三方网站 capture 默认使用 `third_party_reference`。在这个模式下，Skill 不得保存或复制
+logo、图片、专有字体文件、完整 CSS、完整 DOM、营销文案或 inline screenshot payload；
+只记录结构性设计信号和明确的 exclusion 记录。
+
+Style listing 会合并 `data/styles.csv` 中的 registered rows，以及
+`captures/**/normalized.json`、`captures/**/style-row.draft.csv`、
+`captures/**/style-row.csv` 中尚未注册的 drafts。每一行都会包含
+`registrationState`：`registered`、`draft` 或 `conflict`。如果 draft 的 style ID
+已经存在于 catalog 中，会标记为 `conflict`，并同时显示冲突双方；不会静默覆盖或隐藏任一方。
+
 ## 💎 基础版与高级版对比
 
 许多用户询问开源版与高级版之间的差异。以下是详细的对比，帮助你选择适合自己工作流的版本。

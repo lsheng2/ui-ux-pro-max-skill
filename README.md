@@ -200,6 +200,47 @@ The active set covers 43 general visual families, 2 mobile-specific styles, 3 of
 
 See [`styles.csv`](src/ui-ux-pro-max/data/styles.csv) for the full taxonomy and provenance-aware metadata.
 
+### Catalog Capture & Style Registration
+
+The installed `ui-ux-pro-max` skill now includes catalog management actions in
+its `SKILL.md`. Use the skill in natural language; the Python scripts are the
+deterministic backend and test surface, not the primary user interface.
+
+| Goal | Example request |
+|------|-----------------|
+| Capture a website style reference | `Use ui-ux-pro-max to capture https://example.com as a third-party style reference.` |
+| Capture local HTML or a project UI | `Use ui-ux-pro-max to capture this repo's dashboard UI and draft a supplemental style candidate named internal-dashboard-dense.` |
+| Normalize a capture | `Use ui-ux-pro-max to normalize captures/example-dashboard/capture.json and summarize selected versus excluded signals.` |
+| Draft a style row | `Use ui-ux-pro-max to draft a style row from captures/example-dashboard/normalized.json.` |
+| List registered and draft styles | `/ui-ux-pro-max list styles` |
+| Show one style | `/ui-ux-pro-max show style minimalism-and-swiss-style` |
+| Register a reviewed draft | `Use ui-ux-pro-max to register the reviewed draft style <style-id> into the source catalog.` |
+
+Capture produces reviewable artifacts first:
+
+1. `capture.json` stores source metadata, legal mode, viewports, structural
+   design signals, evidence paths, and exclusions.
+2. `normalized.json` selects repeated reusable tokens and excludes one-off
+   long-tail values.
+3. `style-row.draft.csv` and `provenance.draft.json` are candidate artifacts for
+   review. They do not mutate the catalog.
+4. `register-style` is a separate explicit action. It requires confirmation of
+   the exact style ID and must target the fork/source-of-truth
+   `src/ui-ux-pro-max/data` directory, not installed or generated mirrors such
+   as `.agents`, `.claude`, `.cursor`, `.github/prompts`, `.kiro`, or
+   `cli/assets`.
+
+Third-party website captures default to `third_party_reference`. In that mode,
+the skill must not save or copy logos, images, proprietary font files, complete
+CSS, complete DOM, marketing copy, or inline screenshot payloads. It records
+only structural design signals and explicit exclusions.
+
+Style listing merges registered rows from `data/styles.csv` with unregistered
+drafts from `captures/**/normalized.json`, `captures/**/style-row.draft.csv`,
+and `captures/**/style-row.csv`. Every row includes `registrationState`:
+`registered`, `draft`, or `conflict`. A draft whose style ID already exists in
+the catalog is shown as `conflict`; neither side is overwritten or hidden.
+
 ## 💎 Basic vs. Premium Version Comparison
 
 Many users ask about the differences between the open-source and premium versions. Here is a detailed breakdown to help you choose the right fit for your workflow.

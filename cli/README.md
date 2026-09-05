@@ -74,6 +74,36 @@ uipro init --ai codex --force  # regenerate skill files from the new package
 
 `uipro update` runs `npm install -g ui-ux-pro-max-cli@latest` for you (it shells out to `npm` only on Windows, where `npm` is a `.cmd`). You can still run that command manually if you prefer. When the CLI is already current, `uipro update` just refreshes the installed skill files.
 
+## Catalog Capture Actions
+
+After `uipro init`, the installed `ui-ux-pro-max/SKILL.md` documents the
+user-facing catalog actions:
+
+- `capture-style` — capture a website, local HTML file, or project UI as
+  structural design evidence.
+- `normalize-capture` — convert `capture.json` into reusable selected tokens.
+- `draft-style` — generate `style-row.draft.csv` and `provenance.draft.json`
+  without mutating the catalog.
+- `register-style` — explicitly promote a reviewed draft into the
+  source-of-truth `src/ui-ux-pro-max/data` catalog. Do not register into
+  generated mirrors under `.agents`, `.claude`, `.cursor`, `.github/prompts`,
+  `.kiro`, or `cli/assets`.
+- `list-styles` / `show-style` — show registered styles plus captured draft
+  styles, including `registrationState: registered | draft | conflict`.
+
+Example natural-language requests:
+
+```text
+Use ui-ux-pro-max to capture https://example.com as a third-party style reference.
+Use ui-ux-pro-max to capture this repo's dashboard UI and draft a supplemental style candidate named internal-dashboard-dense.
+/ui-ux-pro-max list styles
+/ui-ux-pro-max show style minimalism-and-swiss-style
+```
+
+Third-party captures default to `third_party_reference` and must not save or
+copy logos, images, proprietary font files, complete CSS, complete DOM,
+marketing copy, or inline screenshot payloads.
+
 ## Development
 
 ```bash

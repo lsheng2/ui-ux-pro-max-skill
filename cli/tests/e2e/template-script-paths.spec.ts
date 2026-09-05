@@ -23,11 +23,13 @@ for (const [platform, localPath] of cases) {
     expect(localPaths).toHaveLength(SEARCH_COMMAND_COUNT);
     expect(new Set(localPaths)).toEqual(new Set([localPath]));
     expect(localContent).not.toContain('{{SCRIPT_PATH}}');
+    expect(localContent).not.toContain('{{SCRIPT_DIR}}');
 
     const globalContent = await renderSkillFile(config, true);
     const globalPaths = extractSearchScriptPaths(globalContent);
     expect(globalPaths).toHaveLength(SEARCH_COMMAND_COUNT);
     expect(new Set(globalPaths)).toEqual(new Set([`~/${localPath}`]));
     expect(globalContent).not.toContain('{{SCRIPT_PATH}}');
+    expect(globalContent).not.toContain('{{SCRIPT_DIR}}');
   });
 }

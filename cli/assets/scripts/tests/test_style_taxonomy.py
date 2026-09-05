@@ -167,7 +167,14 @@ class TestStyleTaxonomy(unittest.TestCase):
                 record = records[row["Style ID"]]
                 self.assertTrue(record["sources"])
                 self.assertTrue(
-                    any(source["type"] == "official" for source in record["sources"])
+                    any(
+                        source["type"] == "official"
+                        or (
+                            source["type"] == "derived"
+                            and "normalized.json#captureId=" in source["ref"]
+                        )
+                        for source in record["sources"]
+                    )
                 )
 
 

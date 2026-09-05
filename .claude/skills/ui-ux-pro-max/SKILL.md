@@ -34,7 +34,58 @@ For the full rule list per category (all 119 UX guidelines with rationale), read
 
 ---
 
+## Catalog Capture Actions
+
+These are user-facing skill actions. The user should be able to ask naturally,
+for example: "Use ui-ux-pro-max to capture https://example.com as a third-party
+style reference", "Use ui-ux-pro-max to capture this repo's dashboard UI and
+draft a supplemental style candidate named internal-dashboard-dense",
+"/ui-ux-pro-max list styles", or "/ui-ux-pro-max show style
+phone-bridge-dense-dashboard". Do not require the user to hand-write Python
+commands; choose and run the internal script(s), then report artifact paths and
+validation results.
+
+| Action | User intent | Internal behavior |
+|--------|-------------|-------------------|
+| `capture-style` | Capture a URL, local HTML file, or project UI as structural design evidence | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/capture.py`, write `capture.json`, validate it, and summarize source, legal mode, signals, evidence paths, and exclusions |
+| `normalize-capture` | Convert `capture.json` into selected reusable tokens | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/normalize_capture.py`, write `normalized.json`, and explain selected vs excluded signals |
+| `draft-style` | Create a reviewable catalog candidate | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/style_from_capture.py` without `--apply`, producing `style-row.draft.csv` and `provenance.draft.json` only |
+| `register-style` | Promote a reviewed draft into the source-of-truth catalog | Ask for explicit confirmation first, resolve the fork/source `src/ui-ux-pro-max/data` directory, then run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/style_from_capture.py --apply --confirm <style-id> --data-dir <source-of-truth-data-dir>` or an equivalent reviewed apply step |
+| `list-styles` | List registered styles plus captured drafts | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/style_index.py list --include-drafts --captures <captures-dir>` when a captures directory is relevant |
+| `show-style` | Show one registered or draft style by ID | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/style_index.py show <style-id> --include-drafts --captures <captures-dir>` |
+
+Capture and draft are never allowed to mutate `data/styles.csv`. Registration is
+a separate explicit action, and must not run until the user confirms the exact
+style ID to write. Do not register into any generated install or package mirror
+(`.agents`, `.claude`, `.cursor`, `.windsurf`, `.github/prompts`, `.kiro`, and
+other platform roots, or `cli/assets`); apply only to the fork/source-of-truth
+`src/ui-ux-pro-max/data` directory, then run the sync/check flow. If a draft
+style ID already exists in `data/styles.csv`, list it as
+`registrationState: conflict`, show both the registered row and the draft, and
+do not overwrite or hide either side.
+
+Legal-mode policy:
+- Use `owned` for first-party assets that the user controls.
+- Use `internal_reference` for private/internal UI that may inform structure but
+  should not be redistributed as copied source material.
+- Default third-party websites to `third_party_reference`. In that mode, never
+  save or copy logos, images, proprietary font files, complete CSS, complete DOM,
+  or marketing copy. Keep only structural design signals, local screenshot paths
+  if screenshots are produced by a future browser backend, sampled selectors, and
+  exclusion records.
+
+The internal scripts are deterministic backend/test surfaces. They can be shown
+as evidence in the final answer when useful, but the primary interface is the
+skill action, not asking the user to type those commands manually.
+
+---
+
 ## Running the search tool
+
+The bundled scripts require Python 3 and use the standard library only — no
+third-party packages and no package-manager/system changes. Most actions are
+local-only; `capture-style` may make a network request only when the user
+explicitly asks to capture an `http` or `https` URL.
 
 The search script lives inside this skill's own directory, not the project directory. Always invoke it by its full path — do not assume a particular working directory:
 

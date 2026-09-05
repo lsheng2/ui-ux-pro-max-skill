@@ -145,6 +145,7 @@ export async function renderSkillFile(config: PlatformConfig, isGlobal = false):
   const rootedScriptPath = `${config.folderStructure.root}/${config.scriptPath}`
     .replace(/\/{2,}/g, '/');
   const commandScriptPath = isGlobal ? `~/${rootedScriptPath}` : rootedScriptPath;
+  const commandScriptDir = commandScriptPath.replace(/\/[^/]+$/, '');
 
   // Build the final content
   const frontmatter = renderFrontmatter(config.frontmatter);
@@ -157,6 +158,7 @@ export async function renderSkillFile(config: PlatformConfig, isGlobal = false):
     .replace(/\{\{TITLE\}\}/g, config.title)
     .replace(/\{\{DESCRIPTION\}\}/g, config.description)
     .replace(/\{\{SCRIPT_PATH\}\}/g, commandScriptPath)
+    .replace(/\{\{SCRIPT_DIR\}\}/g, commandScriptDir)
     .replace(/\{\{SKILL_OR_WORKFLOW\}\}/g, config.skillOrWorkflow)
     .replace(/\{\{QUICK_REFERENCE\}\}/g, quickRefWithNewline);
 

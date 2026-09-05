@@ -21,6 +21,7 @@ import normalize_capture  # noqa: E402
 import style_from_capture  # noqa: E402
 import style_index  # noqa: E402
 import validate_style_draft  # noqa: E402
+from assess_style_quality import assess_quality  # noqa: E402
 from capture_shared import STYLE_HEADERS, read_json, write_csv_rows, write_json  # noqa: E402
 from validate_capture import validate_capture_artifact  # noqa: E402
 
@@ -64,6 +65,14 @@ def _capture_payload() -> dict:
         "evidence": {"screenshots": [], "sampledSelectors": [".card"], "sourceFiles": []},
         "exclusions": [],
     }
+
+
+def _write_capture_set(root: Path) -> Path:
+    capture_path = root / "captures" / "fixture" / "capture.json"
+    normalized_path = capture_path.with_name("normalized.json")
+    write_json(capture_path, _capture_payload())
+    write_json(normalized_path, normalize_capture.normalize_capture(_capture_payload()))
+    return normalized_path
 
 
 class StyleIndexTests(unittest.TestCase):
@@ -236,6 +245,87 @@ class CaptureAndNormalizeFixtureTests(unittest.TestCase):
 
 
 class StyleFromCaptureTests(unittest.TestCase):
+    def test_quality_assessment_blocks_missing_capture_evidence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized = root / "captures" / "fixture" / "normalized.json"
+            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
+            style_from_capture.main([str(normalized), "--style-id", "draft-style"])
+            report = read_json(normalized.with_name("quality-report.json"))
+        self.assertEqual("draft-only", report["readiness"])
+        self.assertIn("capture artifact is missing", report["issues"]["traceability"])
+
+    def test_quality_assessment_detects_duplicate_design_tokens(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized = _write_capture_set(root)
+            draft = normalized.with_name("style-row.draft.csv")
+            provenance = normalized.with_name("provenance.draft.json")
+            row = style_from_capture.build_style_row(
+                normalize_capture.normalize_capture(_capture_payload()),
+                style_id="draft-style",
+                style_name="Draft Style",
+                status="supplemental",
+                parent_style_id="registered-style",
+                aliases="Draft Alias",
+            )
+            row["Design System Variables"] = "--radius-control: 6px; --radius-control: 3px"
+            write_csv_rows(draft, STYLE_HEADERS, [row])
+            write_json(provenance, {"schemaVersion": 1, "records": [style_from_capture.provenance_record(normalized, read_json(normalized), row)]})
+            report = assess_quality(normalized, draft_path=draft, provenance_path=provenance)
+        self.assertIn("duplicate design variables: --radius-control", report["issues"]["tokens"])
+
+    def test_quality_assessment_detects_font_family_size_mismatch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized = _write_capture_set(root)
+            draft = normalized.with_name("style-row.draft.csv")
+            provenance = normalized.with_name("provenance.draft.json")
+            row = style_from_capture.build_style_row(
+                normalize_capture.normalize_capture(_capture_payload()),
+                style_id="draft-style",
+                style_name="Draft Style",
+                status="supplemental",
+                parent_style_id="registered-style",
+                aliases="Draft Alias",
+            )
+            row["Design System Variables"] = "--font-secondary: 16px; --font-size-body: 0.875rem"
+            write_csv_rows(draft, STYLE_HEADERS, [row])
+            write_json(provenance, {"schemaVersion": 1, "records": [style_from_capture.provenance_record(normalized, read_json(normalized), row)]})
+            report = assess_quality(normalized, draft_path=draft, provenance_path=provenance)
+        self.assertEqual("draft-only", report["readiness"])
+        self.assertIn("font family token contains a font-size value", report["issues"]["tokens"])
+
+    def test_quality_assessment_detects_shadow_and_motion_positional_tokens(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized = _write_capture_set(root)
+            draft = normalized.with_name("style-row.draft.csv")
+            provenance = normalized.with_name("provenance.draft.json")
+            row = style_from_capture.build_style_row(
+                normalize_capture.normalize_capture(_capture_payload()),
+                style_id="draft-style",
+                style_name="Draft Style",
+                status="supplemental",
+                parent_style_id="registered-style",
+                aliases="Draft Alias",
+            )
+            row["Design System Variables"] = "--shadow-1: 0 1px 2px #000; --motion-1: opacity 0.15s"
+            write_csv_rows(draft, STYLE_HEADERS, [row])
+            write_json(provenance, {"schemaVersion": 1, "records": [style_from_capture.provenance_record(normalized, read_json(normalized), row)]})
+            report = assess_quality(normalized, draft_path=draft, provenance_path=provenance)
+        self.assertEqual("draft-only", report["readiness"])
+        self.assertIn("Design System Variables uses positional token names instead of semantic roles", report["issues"]["tokens"])
+
+    def test_quality_report_uses_portable_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized = _write_capture_set(root)
+            style_from_capture.main([str(normalized), "--style-id", "draft-style", "--aliases", "Draft Alias"])
+            report = read_json(normalized.with_name("quality-report.json"))
+        self.assertNotIn(str(root), report["evidence"]["normalizedPath"])
+        self.assertNotIn(str(root), report["evidence"]["capturePath"])
+
     def test_ai_prompt_keywords_are_at_most_40_words(self):
         normalized = normalize_capture.normalize_capture(_capture_payload())
         row = style_from_capture.build_style_row(
@@ -254,9 +344,8 @@ class StyleFromCaptureTests(unittest.TestCase):
             data = root / "data"
             data.mkdir()
             styles = data / "styles.csv"
-            normalized = root / "normalized.json"
+            normalized = _write_capture_set(root)
             write_csv_rows(styles, STYLE_HEADERS, [_style_row("registered-style")])
-            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
             exit_code = style_from_capture.main([
                 str(normalized),
                 "--style-id", "draft-only-style",
@@ -272,9 +361,8 @@ class StyleFromCaptureTests(unittest.TestCase):
             data = root / "data"
             data.mkdir()
             styles = data / "styles.csv"
-            normalized = root / "normalized.json"
+            normalized = _write_capture_set(root)
             write_csv_rows(styles, STYLE_HEADERS, [_style_row("registered-style")])
-            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
             exit_code = style_from_capture.main([
                 str(normalized),
                 "--style-id", "registered-style-child",
@@ -289,8 +377,7 @@ class StyleFromCaptureTests(unittest.TestCase):
     def test_register_requires_explicit_source_data_dir(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            normalized = root / "normalized.json"
-            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
+            normalized = _write_capture_set(root)
             exit_code = style_from_capture.main([
                 str(normalized),
                 "--style-id", "registered-style-child",
@@ -303,8 +390,7 @@ class StyleFromCaptureTests(unittest.TestCase):
     def test_register_rejects_generated_mirror_data_dir(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            normalized = root / "normalized.json"
-            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
+            normalized = _write_capture_set(root)
             for relative in (
                 ".agents/skills/ui-ux-pro-max/data",
                 ".cursor/skills/ui-ux-pro-max/data",
@@ -336,15 +422,15 @@ class StyleFromCaptureTests(unittest.TestCase):
             data = root / "data"
             data.mkdir()
             styles = data / "styles.csv"
-            normalized = root / "captures" / "fixture" / "normalized.json"
+            normalized = _write_capture_set(root)
             write_csv_rows(styles, STYLE_HEADERS, [_style_row("registered-style")])
             write_json(data / "catalog-summary.json", {"schemaVersion": 1, "verifiedAt": "2026-09-05", "counts": {}})
             write_json(data / "data-provenance.json", {"schemaVersion": 1, "records": []})
-            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
             exit_code = style_from_capture.main([
                 str(normalized),
                 "--style-id", "registered-style-child",
                 "--parent-style-id", "registered-style",
+                "--aliases", "Registered Style Child",
                 "--data-dir", str(data),
                 "--apply",
                 "--confirm", "registered-style-child",
@@ -359,13 +445,43 @@ class StyleFromCaptureTests(unittest.TestCase):
         self.assertEqual("owned", provenance["records"][0]["legalMode"])
         self.assertEqual(2, summary["counts"]["styles"]["total"])
 
+    def test_update_existing_replaces_row_provenance_and_overlay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "src" / "ui-ux-pro-max" / "data"
+            data.mkdir(parents=True)
+            styles = data / "styles.csv"
+            normalized = _write_capture_set(root)
+            write_csv_rows(styles, STYLE_HEADERS, [_style_row("registered-style"), _style_row("target-style", "supplemental")])
+            write_json(data / "catalog-summary.json", {"schemaVersion": 1, "verifiedAt": "2026-09-05", "counts": {}})
+            write_json(data / "data-provenance.json", {"schemaVersion": 1, "records": [{"entityKind": "style", "entityId": "target-style", "sourceFile": "styles.csv", "sourceKey": {"Style ID": "target-style"}, "legalMode": "owned", "appliesTo": ["style-search"], "confidence": 0.1, "sources": [{"type": "derived", "ref": "old"}]}]})
+            exit_code = style_from_capture.main([
+                str(normalized),
+                "--style-id", "target-style",
+                "--style-name", "Updated Target Style",
+                "--parent-style-id", "registered-style",
+                "--aliases", "Target Alias",
+                "--data-dir", str(data),
+                "--apply",
+                "--update-existing",
+                "--confirm", "target-style",
+                "--skip-post-apply-validation",
+            ])
+            _, rows = style_from_capture.read_csv_rows(styles)
+            provenance = read_json(data / "data-provenance.json")
+            overlay = read_json(data.parent / "overlays" / "styles" / "target-style.json")
+        self.assertEqual(0, exit_code)
+        self.assertEqual(1, sum(row["Style ID"] == "target-style" for row in rows))
+        self.assertEqual("Updated Target Style", next(row for row in rows if row["Style ID"] == "target-style")["Style Category"])
+        self.assertEqual(1, sum(record["entityId"] == "target-style" for record in provenance["records"]))
+        self.assertEqual("Updated Target Style", overlay["style"]["Style Category"])
+
     def test_validate_style_draft_accepts_generated_draft_and_provenance(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            normalized = root / "captures" / "fixture" / "normalized.json"
+            normalized = _write_capture_set(root)
             draft = normalized.with_name("style-row.draft.csv")
             provenance = normalized.with_name("provenance.draft.json")
-            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
             exit_code = style_from_capture.main([
                 str(normalized),
                 "--style-id", "draft-style",
@@ -385,16 +501,16 @@ class StyleFromCaptureTests(unittest.TestCase):
             data = root / "data"
             data.mkdir()
             styles = data / "styles.csv"
-            normalized = root / "captures" / "fixture" / "normalized.json"
+            normalized = _write_capture_set(root)
             write_csv_rows(styles, STYLE_HEADERS, [_style_row("registered-style")])
             write_json(data / "catalog-summary.json", {"schemaVersion": 1, "verifiedAt": "2026-09-05", "counts": {}})
             write_json(data / "data-provenance.json", {"schemaVersion": 1, "records": []})
-            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
             with patch.object(style_from_capture, "_run_post_apply_validation") as validator:
                 exit_code = style_from_capture.main([
                     str(normalized),
                     "--style-id", "registered-style-child",
                     "--parent-style-id", "registered-style",
+                    "--aliases", "Registered Style Child",
                     "--data-dir", str(data),
                     "--apply",
                     "--confirm", "registered-style-child",

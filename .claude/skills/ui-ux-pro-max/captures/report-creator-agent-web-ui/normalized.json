@@ -1,0 +1,180 @@
+{
+  "schemaVersion": 1,
+  "captureId": "report-creator-agent-web-ui",
+  "legalMode": "owned",
+  "selectedTokens": {
+    "colors": [
+      {
+        "name": "--color-text",
+        "value": "#6b7280",
+        "count": 8
+      },
+      {
+        "name": "--color-surface",
+        "value": "#e5e7eb",
+        "count": 6
+      },
+      {
+        "name": "--color-accent",
+        "value": "#0d9488",
+        "count": 4
+      },
+      {
+        "name": "--color-accent-strong",
+        "value": "#065f46",
+        "count": 3
+      },
+      {
+        "name": "--color-muted",
+        "value": "#111827",
+        "count": 3
+      },
+      {
+        "name": "--color-border",
+        "value": "#991b1b",
+        "count": 2
+      }
+    ],
+    "typography": [
+      {
+        "name": "--font-size-body",
+        "value": "0.8125rem",
+        "count": 6
+      },
+      {
+        "name": "--font-size-caption",
+        "value": "0.75rem",
+        "count": 5
+      },
+      {
+        "name": "--font-size-control",
+        "value": "0.875rem",
+        "count": 4
+      }
+    ],
+    "spacing": [
+      {
+        "name": "--space-compact",
+        "value": "0.5rem",
+        "count": 8
+      },
+      {
+        "name": "--space-section",
+        "value": "1rem",
+        "count": 6
+      },
+      {
+        "name": "--space-control",
+        "value": "0.75rem",
+        "count": 5
+      },
+      {
+        "name": "--space-tight",
+        "value": "0.25rem",
+        "count": 3
+      }
+    ],
+    "radius": [
+      {
+        "name": "--radius-control",
+        "value": "6px",
+        "count": 5
+      },
+      {
+        "name": "--radius-panel",
+        "value": "0.75rem",
+        "count": 3
+      },
+      {
+        "name": "--radius-card",
+        "value": "10px",
+        "count": 2
+      }
+    ],
+    "shadows": [],
+    "motion": [
+      {
+        "name": "--motion-fast",
+        "value": "background 0.15s",
+        "count": 3
+      }
+    ]
+  },
+  "structuralSignals": {
+    "components": [
+      {
+        "value": "button",
+        "count": 5
+      },
+      {
+        "value": "form",
+        "count": 5
+      },
+      {
+        "value": "card",
+        "count": 4
+      },
+      {
+        "value": "tabs",
+        "count": 3
+      },
+      {
+        "value": "topbar",
+        "count": 3
+      }
+    ],
+    "layout": [
+      {
+        "value": "flex",
+        "count": 7
+      },
+      {
+        "value": "dense",
+        "count": 5
+      },
+      {
+        "value": "grid",
+        "count": 4
+      },
+      {
+        "value": "responsive",
+        "count": 3
+      }
+    ],
+    "accessibility": [
+      {
+        "value": "aria-attributes",
+        "count": 3
+      }
+    ],
+    "source": {
+      "kind": "project",
+      "value": "report-creator-agent-web-ui",
+      "legalMode": "owned"
+    },
+    "viewports": [
+      {
+        "width": 1440,
+        "height": 1000,
+        "label": "desktop"
+      }
+    ]
+  },
+  "excludedSignals": [
+    {
+      "group": "radius",
+      "value": "3px",
+      "count": 2,
+      "reason": "beyond supported token slots"
+    },
+    {
+      "group": "capture",
+      "reason": "No copied brand assets, binary images, proprietary fonts, full CSS, full DOM, or marketing copy are stored in this source-controlled evidence artifact."
+    }
+  ],
+  "confidence": 0.87,
+  "recommendedStyleId": {
+    "candidate": "report-creator-agent-web-ui-flex-dense",
+    "reason": "derived from captureId, dominant layout/component, and density; review before registration"
+  }
+}

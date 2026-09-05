@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "styleId": "report-creator-agent-web-ui-flex-dense",
+  "readiness": "recommendable",
+  "scores": {
+    "traceabilityScore": 1.0,
+    "semanticScore": 1.0,
+    "tokenScore": 1.0,
+    "contrastScore": 1.0,
+    "searchabilityScore": 1.0
+  },
+  "issues": {
+    "traceability": [],
+    "semantic": [],
+    "tokens": [],
+    "contrast": [],
+    "searchability": []
+  },
+  "evidence": {
+    "normalizedPath": "src/ui-ux-pro-max/captures/report-creator-agent-web-ui/normalized.json",
+    "normalizedSha256": "1a6cfa7e8be27ef5eb5361db0c47a5e214f2eef16cdd0fa6097e10832f80dd19",
+    "capturePath": "src/ui-ux-pro-max/captures/report-creator-agent-web-ui/capture.json",
+    "captureSha256": "dd52724db5006cb1332c740c64f2813679bd62cfeab21df695422f7de38bdded",
+    "provenancePath": "src/ui-ux-pro-max/captures/report-creator-agent-web-ui/provenance.draft.json",
+    "provenanceSha256": "d92eef91cd2796195decfd68ffd08ddf4bfc36e170652ae34e4693e3f5020b4d"
+  },
+  "contrastPairs": [
+    {
+      "foreground": "#e5e7eb",
+      "background": "#111827",
+      "ratio": 14.33,
+      "passesTextAA": true
+    },
+    {
+      "foreground": "#e5e7eb",
+      "background": "#991b1b",
+      "ratio": 6.71,
+      "passesTextAA": true
+    },
+    {
+      "foreground": "#e5e7eb",
+      "background": "#065f46",
+      "ratio": 6.21,
+      "passesTextAA": true
+    },
+    {
+      "foreground": "#0d9488",
+      "background": "#111827",
+      "ratio": 4.74,
+      "passesTextAA": true
+    },
+    {
+      "foreground": "#6b7280",
+      "background": "#e5e7eb",
+      "ratio": 3.9,
+      "passesTextAA": false
+    },
+    {
+      "foreground": "#6b7280",
+      "background": "#111827",
+      "ratio": 3.67,
+      "passesTextAA": false
+    },
+    {
+      "foreground": "#e5e7eb",
+      "background": "#0d9488",
+      "ratio": 3.02,
+      "passesTextAA": false
+    },
+    {
+      "foreground": "#065f46",
+      "background": "#111827",
+      "ratio": 2.31,
+      "passesTextAA": false
+    }
+  ]
+}

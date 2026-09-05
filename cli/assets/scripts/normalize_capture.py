@@ -13,13 +13,16 @@ from capture_shared import CAPTURE_SCHEMA_VERSION, read_json, slugify, write_jso
 from validate_capture import validate_capture_artifact, validate_normalized_artifact
 
 TOKEN_NAMES = {
-    "colors": ("--color-primary", "--color-secondary", "--color-surface", "--color-accent",
-               "--color-muted", "--color-border"),
-    "spacing": ("--space-1", "--space-2", "--space-3", "--space-4", "--space-5"),
-    "radius": ("--radius-1", "--radius-2", "--radius-3"),
-    "shadows": ("--shadow-1", "--shadow-2", "--shadow-3"),
-    "motion": ("--motion-1", "--motion-2", "--motion-3"),
+    "colors": ("--color-text", "--color-surface", "--color-accent",
+               "--color-accent-strong", "--color-muted", "--color-border"),
+    "typography": ("--font-primary", "--font-size-body", "--font-size-caption", "--font-size-control"),
+    "spacing": ("--space-compact", "--space-section", "--space-control", "--space-tight", "--space-page"),
+    "radius": ("--radius-control", "--radius-panel", "--radius-card"),
+    "shadows": ("--shadow-card", "--shadow-popover", "--shadow-modal"),
+    "motion": ("--motion-fast", "--motion-standard", "--motion-emphasis"),
 }
+TYPOGRAPHY_FAMILY_NAMES = ("--font-primary", "--font-secondary")
+TYPOGRAPHY_SIZE_NAMES = ("--font-size-body", "--font-size-caption", "--font-size-control", "--font-size-micro")
 
 
 def _item_value(item: Any, group: str) -> str:
@@ -43,20 +46,30 @@ def _source_type(item: Any) -> str | None:
     return None
 
 
+def _typography_subtype(item: Any, value: str) -> str:
+    if isinstance(item, dict) and item.get("role") == "font-size":
+        return "font-size"
+    if re.fullmatch(r"-?\d+(?:\.\d+)?(?:px|rem|em|%)", value):
+        return "font-size"
+    return "font-family"
+
+
 def _normalize_token_group(group: str, items: list[Any], min_count: int) -> tuple[list[dict], list[dict]]:
-    buckets: dict[tuple[str, str | None], int] = {}
+    buckets: dict[tuple[str, str | None, str], int] = {}
     for item in items:
         value = _item_value(item, group)
         if not value:
             continue
-        key = (value, _source_type(item))
+        subtype = _typography_subtype(item, value) if group == "typography" else ""
+        key = (value, _source_type(item), subtype)
         buckets[key] = buckets.get(key, 0) + _item_count(item)
 
     selected: list[dict] = []
     excluded: list[dict] = []
     names = TOKEN_NAMES.get(group, tuple(f"--{group}-{index}" for index in range(1, 10)))
     ranked = sorted(buckets.items(), key=lambda entry: (-entry[1], entry[0][0].casefold()))
-    for index, ((value, source_type), count) in enumerate(ranked):
+    typography_counts = {"font-family": 0, "font-size": 0}
+    for index, ((value, source_type, subtype), count) in enumerate(ranked):
         if count < min_count:
             excluded.append({
                 "group": group,
@@ -65,8 +78,23 @@ def _normalize_token_group(group: str, items: list[Any], min_count: int) -> tupl
                 "reason": "long-tail one-off value",
             })
             continue
+        if group == "typography":
+            name_pool = TYPOGRAPHY_SIZE_NAMES if subtype == "font-size" else TYPOGRAPHY_FAMILY_NAMES
+            name_index = typography_counts[subtype]
+            typography_counts[subtype] += 1
+        else:
+            name_pool = names
+            name_index = index
+        if name_index >= len(name_pool):
+            excluded.append({
+                "group": group,
+                "value": value,
+                "count": count,
+                "reason": "beyond supported token slots",
+            })
+            continue
         token = {
-            "name": names[min(index, len(names) - 1)] if names else f"--{group}-{index + 1}",
+            "name": name_pool[name_index] if name_pool else f"--{group}-{index + 1}",
             "value": value,
             "count": count,
         }

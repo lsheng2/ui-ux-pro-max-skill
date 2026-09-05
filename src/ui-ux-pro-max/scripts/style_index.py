@@ -138,6 +138,7 @@ def format_table(rows: list[dict[str, Any]]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    sys.stdout.reconfigure(encoding="utf-8")
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", nargs="?", default="list", help="list, show, or a style-id to show")
     parser.add_argument("style_id", nargs="?", help="Style ID for show")

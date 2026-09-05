@@ -39,11 +39,12 @@ For the full rule list per category (all 119 UX guidelines with rationale), read
 These are user-facing skill actions. The user should be able to ask naturally,
 for example: "Use ui-ux-pro-max to capture https://example.com as a third-party
 style reference", "Use ui-ux-pro-max to capture this repo's dashboard UI and
-draft a supplemental style candidate named internal-dashboard-dense",
+draft a supplemental style candidate named internal-dashboard-dense", "Update
+report-creator-agent-web-ui-flex-dense from this new capture",
 "/ui-ux-pro-max list styles", or "/ui-ux-pro-max show style
 phone-bridge-dense-dashboard". Do not require the user to hand-write Python
-commands; choose and run the internal script(s), then report artifact paths and
-validation results.
+commands; choose and run the internal script(s), then report artifact paths,
+quality/readiness, and validation results.
 
 | Action | User intent | Internal behavior |
 |--------|-------------|-------------------|
@@ -51,6 +52,7 @@ validation results.
 | `normalize-capture` | Convert `capture.json` into selected reusable tokens | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/normalize_capture.py`, write `normalized.json`, and explain selected vs excluded signals |
 | `draft-style` | Create a reviewable catalog candidate | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/style_from_capture.py` without `--apply`, producing `style-row.draft.csv` and `provenance.draft.json` only |
 | `register-style` / `promote-style` | Promote a reviewed draft into the source-of-truth catalog | Show the candidate summary, ask for final confirmation first, resolve the fork/source `src/ui-ux-pro-max/data` directory, then run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/style_from_capture.py --apply --confirm <style-id> --data-dir <source-of-truth-data-dir>` or an equivalent reviewed apply step |
+| `update-captured-style` / `refresh-style` | Re-capture and improve an existing draft or registered style without manual catalog editing | Resolve the existing style by ID, re-run capture + normalize + quality assessment from fresh evidence, generate a same-ID replacement candidate, show old-vs-new differences, ask for final confirmation, then update only the source-of-truth catalog/overlay through a reviewed apply step |
 | `validate-capture` | Validate `capture.json` or `normalized.json` | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/validate_capture.py` and report schema/legal-boundary errors |
 | `validate-style-draft` | Validate a draft style row and optional provenance draft | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/validate_style_draft.py` and report style-row/provenance readiness |
 | `list-styles` | List registered styles plus captured drafts | Run `${CLAUDE_PLUGIN_ROOT}/.claude/skills/ui-ux-pro-max/scripts/style_index.py list --include-drafts --captures <captures-dir>` when a captures directory is relevant |
@@ -64,6 +66,15 @@ Capture is complete. Should this style be automatically named and registered as 
 
 The valid choices are `keep draft` and `name and register`.
 
+Before registration or update, inspect capture quality rather than trusting a
+schema-valid row. Treat `quality-report.json` as the decision artifact when the
+quality assessor exists; otherwise report the missing quality gate and keep the
+style at `needs-review`. Quality must cover evidence traceability, semantic
+usefulness, duplicate or overly literal tokens, contrast-safe color pairs, and
+searchability by exact ID plus at least one natural-language query. Distinguish
+`draft-only`, `registerable`, and `recommendable`; do not present a merely
+registerable capture as a mature recommendation.
+
 Capture and draft are never allowed to mutate `data/styles.csv`. Registration is
 a separate explicit action, and must not run until the user confirms the exact
 style ID to write. Do not register into any generated install or package mirror
@@ -73,6 +84,14 @@ other platform roots, or `cli/assets`); apply only to the fork/source-of-truth
 style ID already exists in `data/styles.csv`, list it as
 `registrationState: conflict`, show both the registered row and the draft, and
 do not overwrite or hide either side.
+
+For `update-captured-style`, preserve the existing `Style ID` unless the user
+explicitly confirms a rename. Re-capture from the provided URL, local HTML, or
+project UI, regenerate normalized signals and a candidate row, then show the
+old-vs-new differences for `Best For`, `Do Not Use For`, keywords, colors,
+design variables, accessibility/performance metadata, provenance source, and
+quality readiness. Do not replace the registered row, provenance record, or
+overlay file until the user confirms the exact update.
 
 Legal-mode policy:
 - Use `owned` for first-party assets that the user controls.

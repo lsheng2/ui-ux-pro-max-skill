@@ -16,7 +16,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(__dirname, '..', '..');
 const sourceRoot = join(repoRoot, 'src', 'ui-ux-pro-max');
 const assetRoot = join(repoRoot, 'cli', 'assets');
-const dirsToSync = ['data', 'scripts', 'templates'];
+const dirsToSync = ['captures', 'data', 'overlays', 'scripts', 'templates'];
 const checkOnly = process.argv.includes('--check');
 
 // The 6 sibling sub-skills are bundled (as static copies) so `uipro init`
@@ -27,15 +27,15 @@ const skillsSourceRoot = join(repoRoot, '.claude', 'skills');
 const skillsAssetRoot = join(assetRoot, 'skills');
 const subSkills = ['banner-design', 'brand', 'design', 'design-system', 'slides', 'ui-styling'];
 
-// The repo's own .claude/skills/ui-ux-pro-max/{data,scripts} is a second,
-// independent copy of src/ui-ux-pro-max/{data,scripts} -- it's what Claude
+// The repo's own .claude/skills/ui-ux-pro-max/{captures,data,scripts} is a second,
+// independent copy of src/ui-ux-pro-max/{captures,data,scripts} -- it's what Claude
 // Code actually loads when this repo is installed as a plugin. Nothing
 // previously checked it against src/, so it silently drifted (missing stack
 // CSVs, stale content in several data files). SKILL.md there is hand-authored
 // (not template-rendered like the CLI's copy), so only data/ and scripts/
 // are mirrored -- never templates/ or SKILL.md itself.
 const orchestratorSkillTargetRoot = join(skillsSourceRoot, 'ui-ux-pro-max');
-const orchestratorDirsToSync = ['data', 'scripts'];
+const orchestratorDirsToSync = ['captures', 'data', 'overlays', 'scripts'];
 
 // ponytail: only text is bundled. Excludes (a) heavy binary assets — the
 // canvas fonts are ~5.8MB and a skill registers from its SKILL.md, not its

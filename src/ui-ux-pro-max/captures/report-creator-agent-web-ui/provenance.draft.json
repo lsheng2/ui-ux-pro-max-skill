@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-09-05T14:27:59Z",
+  "records": [
+    {
+      "entityKind": "style",
+      "entityId": "report-creator-agent-web-ui-flex-dense",
+      "sourceFile": "styles.csv",
+      "sourceKey": {
+        "Style ID": "report-creator-agent-web-ui-flex-dense"
+      },
+      "legalMode": "owned",
+      "status": "supplemental",
+      "verifiedAt": "2026-09-05",
+      "sla": "needs-review",
+      "appliesTo": [
+        "style-search",
+        "gallery"
+      ],
+      "confidence": 0.87,
+      "sources": [
+        {
+          "type": "derived",
+          "ref": "captures/report-creator-agent-web-ui/normalized.json#captureId=report-creator-agent-web-ui"
+        }
+      ]
+    }
+  ]
+}

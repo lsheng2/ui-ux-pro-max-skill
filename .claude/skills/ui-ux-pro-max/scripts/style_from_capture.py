@@ -24,6 +24,7 @@ from capture_shared import (
     write_csv_rows,
     write_json,
 )
+from assess_style_quality import assess_quality
 from validate_capture import validate_normalized_artifact
 from validate_style_draft import validate_draft_csv, validate_provenance
 
@@ -105,8 +106,26 @@ def _preferred_mode(normalized: dict[str, Any]) -> str:
     return "auto"
 
 
+def _style_context(normalized: dict[str, Any]) -> dict[str, str]:
+    capture_name = title_from_slug(str(normalized.get("captureId") or "captured style"))
+    components = _structural_values(normalized, "components", 4)
+    layout = _structural_values(normalized, "layout", 3)
+    density = normalized.get("recommendedStyleId", {}).get("reason", "")
+    component_text = ", ".join(components) if components else "captured component"
+    layout_text = ", ".join(layout) if layout else "captured layout"
+    density_text = "dense" if "dense" in str(normalized.get("recommendedStyleId", {})).casefold() else "structured"
+    return {
+        "capture_name": capture_name,
+        "component_text": component_text,
+        "layout_text": layout_text,
+        "density_text": density_text,
+        "summary": f"{capture_name} interfaces with {density_text} {layout_text} structure and {component_text} patterns",
+    }
+
+
 def _prompt_keywords(style_name: str, normalized: dict[str, Any]) -> str:
-    parts = [style_name, "captured structural reference", "tokenized UI"]
+    context = _style_context(normalized)
+    parts = [style_name, "evidence-backed UI style", context["density_text"]]
     parts.extend(_structural_values(normalized, "components", 4))
     parts.extend(_structural_values(normalized, "layout", 3))
     if _token_values(normalized, "spacing", 2):
@@ -132,14 +151,15 @@ def build_style_row(
     aliases: str,
 ) -> dict[str, str]:
     legal_mode = normalized.get("legalMode")
+    context = _style_context(normalized)
     do_not_use = "Copying logos, images, proprietary fonts, full CSS/DOM, marketing copy, or brand identity."
     if legal_mode == "owned":
-        do_not_use = "Using one captured screen as a universal product system without review."
+        do_not_use = "Single-screen captures without review, brand systems needing bespoke art direction, or pages whose states were not captured."
     components = _structural_values(normalized, "components")
     layout = _structural_values(normalized, "layout")
     keywords = ", ".join(dict.fromkeys([
         "captured", "reference", "tokenized", *components, *layout,
-        *[slugify(value, value) for value in _token_values(normalized, "colors", 3)],
+        context["density_text"], "responsive", "semantic tokens",
     ]))
     return {
         "No": "",
@@ -149,7 +169,7 @@ def build_style_row(
         "Primary Colors": ", ".join(_token_values(normalized, "colors", 4)) or "Captured semantic color tokens pending review",
         "Secondary Colors": ", ".join(_token_values(normalized, "colors", 8)[4:]) or "Captured secondary tokens pending review",
         "Effects & Animation": "; ".join(_token_values(normalized, "shadows", 3) + _token_values(normalized, "motion", 3)) or "Captured motion and elevation pending review",
-        "Best For": f"{style_name} implementations based on normalized structural capture signals",
+        "Best For": f"{context['summary']} for review, authoring, dashboard, or operational workflows that need reusable evidence-backed tokens",
         "Do Not Use For": do_not_use,
         "Light Mode ✓": "conditional",
         "Dark Mode ✓": "conditional",
@@ -213,23 +233,44 @@ def _update_catalog_summary(data_dir: Path, rows: list[dict[str, str]]) -> None:
     write_json(path, summary)
 
 
-def _update_provenance(data_dir: Path, record: dict[str, Any]) -> None:
+def _update_provenance(data_dir: Path, record: dict[str, Any], *, update_existing: bool = False) -> None:
     path = data_dir / "data-provenance.json"
     payload = read_json(path) if path.exists() else {"schemaVersion": 1, "records": []}
     payload.setdefault("generatedAt", utc_now())
     records = payload.setdefault("records", [])
-    if any(item.get("entityKind") == "style" and item.get("entityId") == record["entityId"] for item in records):
+    existing_index = next(
+        (
+            index for index, item in enumerate(records)
+            if item.get("entityKind") == "style" and item.get("entityId") == record["entityId"]
+        ),
+        None,
+    )
+    if existing_index is not None and not update_existing:
         raise ValueError(f"provenance already contains style {record['entityId']}")
-    records.append(record)
+    if existing_index is None:
+        records.append(record)
+    else:
+        records[existing_index] = record
     write_json(path, payload)
 
 
-def _assert_apply_allowed(row: dict[str, str], data_dir: Path, rows: list[dict[str, str]]) -> None:
+def _write_source_overlay(data_dir: Path, row: dict[str, str], record: dict[str, Any], *, update_existing: bool = False) -> None:
+    source_root = data_dir.parent
+    overlay_path = source_root / "overlays" / "styles" / f"{row['Style ID']}.json"
+    if overlay_path.exists() and not update_existing:
+        raise ValueError(f"style overlay already exists: {overlay_path}")
+    style = {key: value for key, value in row.items() if key != "No"}
+    write_json(overlay_path, {"schemaVersion": 1, "style": style, "provenance": record})
+
+
+def _assert_apply_allowed(row: dict[str, str], data_dir: Path, rows: list[dict[str, str]], *, update_existing: bool = False) -> None:
     normalized_dir = str(data_dir.resolve()).replace("\\", "/").casefold()
     if any(marker in normalized_dir for marker in GENERATED_DATA_DIR_MARKERS):
         raise ValueError("--data-dir must point at the source-of-truth data directory, not an installed or generated mirror")
-    if row["Style ID"] in {existing.get("Style ID") for existing in rows}:
+    if row["Style ID"] in {existing.get("Style ID") for existing in rows} and not update_existing:
         raise ValueError(f"style {row['Style ID']} is already registered")
+    if row["Style ID"] not in {existing.get("Style ID") for existing in rows} and update_existing:
+        raise ValueError(f"--update-existing requires registered style {row['Style ID']}")
     by_id = {existing.get("Style ID"): existing for existing in rows}
     if row["Status"] == "supplemental":
         parent = row["Parent Style ID"]
@@ -243,18 +284,43 @@ def _assert_apply_allowed(row: dict[str, str], data_dir: Path, rows: list[dict[s
     if provenance_path.exists():
         payload = read_json(provenance_path)
         records = payload.get("records", [])
-        if any(item.get("entityKind") == "style" and item.get("entityId") == row["Style ID"] for item in records):
+        if any(item.get("entityKind") == "style" and item.get("entityId") == row["Style ID"] for item in records) and not update_existing:
             raise ValueError(f"provenance already contains style {row['Style ID']}")
 
 
-def _apply_row(row: dict[str, str], data_dir: Path, record: dict[str, Any]) -> None:
+def _apply_row(row: dict[str, str], data_dir: Path, record: dict[str, Any], *, update_existing: bool = False) -> None:
     styles_path = data_dir / "styles.csv"
     headers, rows = read_csv_rows(styles_path)
-    _assert_apply_allowed(row, data_dir, rows)
-    row["No"] = _next_no(rows)
-    write_csv_rows(styles_path, headers or STYLE_HEADERS, [*rows, row])
-    _update_catalog_summary(data_dir, [*rows, row])
-    _update_provenance(data_dir, record)
+    _assert_apply_allowed(row, data_dir, rows, update_existing=update_existing)
+    if update_existing:
+        updated_rows: list[dict[str, str]] = []
+        for existing in rows:
+            if existing.get("Style ID") == row["Style ID"]:
+                row["No"] = existing.get("No", "") or row.get("No", "")
+                updated_rows.append(row)
+            else:
+                updated_rows.append(existing)
+    else:
+        row["No"] = _next_no(rows)
+        updated_rows = [*rows, row]
+    write_csv_rows(styles_path, headers or STYLE_HEADERS, updated_rows)
+    _update_catalog_summary(data_dir, updated_rows)
+    _update_provenance(data_dir, record, update_existing=update_existing)
+
+
+def _field_diff(before: dict[str, str], after: dict[str, str]) -> list[dict[str, str]]:
+    fields = (
+        "Style Category", "Keywords", "Primary Colors", "Secondary Colors",
+        "Effects & Animation", "Best For", "Do Not Use For", "Performance",
+        "Accessibility", "AI Prompt Keywords", "CSS/Technical Keywords",
+        "Implementation Checklist", "Design System Variables", "Parent Style ID",
+        "Preferred Mode",
+    )
+    return [
+        {"field": field, "before": before.get(field, ""), "after": after.get(field, "")}
+        for field in fields
+        if before.get(field, "") != after.get(field, "")
+    ]
 
 
 def _run_command(command: list[str], cwd: Path) -> None:
@@ -328,7 +394,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--provenance-out", help="Draft provenance JSON path")
     parser.add_argument("--data-dir", help="Source-of-truth catalog data directory; required with --apply")
     parser.add_argument("--apply", action="store_true", help="Append to data/styles.csv and provenance after confirmation")
+    parser.add_argument("--update-existing", action="store_true", help="Replace an existing style row/provenance/overlay after confirmation")
     parser.add_argument("--confirm", help="Required with --apply; must equal the final style id")
+    parser.add_argument("--quality-out", help="Quality report path; defaults to quality-report.json next to normalized.json")
+    parser.add_argument("--min-readiness", choices=("draft-only", "registerable", "recommendable"), default="registerable")
     parser.add_argument("--skip-post-apply-validation", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
@@ -361,18 +430,42 @@ def main(argv: list[str] | None = None) -> int:
         provenance_errors = validate_provenance(provenance_out)
         if draft_errors or provenance_errors:
             raise ValueError("; ".join(draft_errors + provenance_errors))
+        quality_out = Path(args.quality_out) if args.quality_out else normalized_path.with_name("quality-report.json")
+        styles_path = Path(args.data_dir) / "styles.csv" if args.data_dir else None
+        quality = assess_quality(
+            normalized_path,
+            draft_path=out,
+            provenance_path=provenance_out,
+            registered_path=styles_path,
+            style_id=style_id,
+        )
+        write_json(quality_out, quality)
         if args.apply:
             if args.confirm != style_id:
                 raise ValueError(f"--apply requires --confirm {style_id}")
             if not args.data_dir:
                 raise ValueError("--apply requires --data-dir pointing at the source-of-truth catalog data directory")
-            _apply_row(row, Path(args.data_dir), record)
+            readiness_order = {"draft-only": 0, "registerable": 1, "recommendable": 2}
+            if readiness_order[quality["readiness"]] < readiness_order[args.min_readiness]:
+                raise ValueError(
+                    f"quality readiness {quality['readiness']} is below required {args.min_readiness}; "
+                    f"see {quality_out}"
+                )
+            if args.update_existing:
+                _, existing_rows = read_csv_rows(Path(args.data_dir) / "styles.csv")
+                before = next((existing for existing in existing_rows if existing.get("Style ID") == style_id), {})
+                diffs = _field_diff(before, row)
+                print(json.dumps({"styleId": style_id, "updatedFields": diffs}, ensure_ascii=False, indent=2))
+            _apply_row(row, Path(args.data_dir), record, update_existing=args.update_existing)
+            _write_source_overlay(Path(args.data_dir), row, record, update_existing=args.update_existing)
             if not args.skip_post_apply_validation:
                 _run_post_apply_validation(Path(args.data_dir), row)
-            print(f"Registered style {style_id} into {Path(args.data_dir) / 'styles.csv'}")
+            action = "Updated" if args.update_existing else "Registered"
+            print(f"{action} style {style_id} into {Path(args.data_dir) / 'styles.csv'}")
         else:
             print(f"Wrote draft style row: {out}")
             print(f"Wrote draft provenance: {provenance_out}")
+            print(f"Wrote quality report: {quality_out}")
     except (OSError, ValueError, csv.Error) as exc:
         print(f"style_from_capture: {exc}", file=sys.stderr)
         return 1

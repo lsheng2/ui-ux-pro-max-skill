@@ -212,9 +212,10 @@ deterministic backend and test surface, not the primary user interface.
 | Capture local HTML or a project UI | `Use ui-ux-pro-max to capture this repo's dashboard UI and draft a supplemental style candidate named internal-dashboard-dense.` |
 | Normalize a capture | `Use ui-ux-pro-max to normalize captures/example-dashboard/capture.json and summarize selected versus excluded signals.` |
 | Draft a style row | `Use ui-ux-pro-max to draft a style row from captures/example-dashboard/normalized.json.` |
+| Validate capture or draft | `Use ui-ux-pro-max to validate this capture and style draft before promotion.` |
 | List registered and draft styles | `/ui-ux-pro-max list styles` |
 | Show one style | `/ui-ux-pro-max show style minimalism-and-swiss-style` |
-| Register a reviewed draft | `Use ui-ux-pro-max to register the reviewed draft style <style-id> into the source catalog.` |
+| Register/promote a reviewed draft | `Use ui-ux-pro-max to promote the reviewed draft style <style-id> into the source catalog.` |
 
 Capture produces reviewable artifacts first:
 
@@ -224,7 +225,11 @@ Capture produces reviewable artifacts first:
    long-tail values.
 3. `style-row.draft.csv` and `provenance.draft.json` are candidate artifacts for
    review. They do not mutate the catalog.
-4. `register-style` is a separate explicit action. It requires confirmation of
+4. After capture succeeds, the skill asks:
+   `Capture is complete. Should this style be automatically named and registered as a supplemental catalog style, or kept as a draft?`
+   Choose `keep draft` to stop with artifacts, or `name and register` to review
+   the generated candidate summary.
+5. `register-style` / `promote-style` is a separate explicit action. It requires confirmation of
    the exact style ID and must target the fork/source-of-truth
    `src/ui-ux-pro-max/data` directory, not installed or generated mirrors such
    as `.agents`, `.claude`, `.cursor`, `.github/prompts`, `.kiro`, or

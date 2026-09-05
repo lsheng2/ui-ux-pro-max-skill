@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -23,6 +25,7 @@ from capture_shared import (
     write_json,
 )
 from validate_capture import validate_normalized_artifact
+from validate_style_draft import validate_draft_csv, validate_provenance
 
 GENERATED_DATA_DIR_MARKERS = (
     "/.agents/skills/ui-ux-pro-max/data",
@@ -182,6 +185,7 @@ def provenance_record(normalized_path: Path, normalized: dict[str, Any], row: di
         "entityId": row["Style ID"],
         "sourceFile": "styles.csv",
         "sourceKey": {"Style ID": row["Style ID"]},
+        "legalMode": normalized.get("legalMode"),
         "status": row["Status"],
         "verifiedAt": date.today().isoformat(),
         "sla": "needs-review",
@@ -253,6 +257,65 @@ def _apply_row(row: dict[str, str], data_dir: Path, record: dict[str, Any]) -> N
     _update_provenance(data_dir, record)
 
 
+def _run_command(command: list[str], cwd: Path) -> None:
+    completed = subprocess.run(command, cwd=cwd, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    if completed.returncode != 0:
+        details = "\n".join(part for part in (completed.stdout.strip(), completed.stderr.strip()) if part)
+        raise ValueError(f"post-apply validation failed: {' '.join(command)}\n{details}")
+
+
+def _run_post_apply_validation(data_dir: Path, row: dict[str, str]) -> None:
+    source_root = data_dir.parent
+    repo_root = source_root.parent.parent
+    scripts_dir = source_root / "scripts"
+    validate_data = scripts_dir / "validate_data.py"
+    search = scripts_dir / "search.py"
+    catalog_summary = repo_root / "scripts" / "generate-catalog-summary.py"
+    if not validate_data.exists() or not search.exists():
+        raise ValueError("post-apply validation requires a source tree with scripts/validate_data.py and scripts/search.py")
+    _run_command([sys.executable, str(validate_data)], repo_root)
+    if catalog_summary.exists():
+        _run_command([sys.executable, str(catalog_summary), "--check"], repo_root)
+    exact = subprocess.run(
+        [sys.executable, str(search), row["Style ID"], "--domain", "style", "--json"],
+        cwd=repo_root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if exact.returncode != 0:
+        raise ValueError(f"exact style-id search failed: {exact.stderr.strip()}")
+    payload = json.loads(exact.stdout)
+    if payload.get("count") != 1 or payload["results"][0].get("Style ID") != row["Style ID"]:
+        raise ValueError(f"exact style-id search did not return {row['Style ID']}")
+    aliases = [alias.strip() for alias in row.get("Aliases", "").split("|") if alias.strip()]
+    if aliases:
+        alias = subprocess.run(
+            [sys.executable, str(search), aliases[0], "--domain", "style", "--json"],
+            cwd=repo_root,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        if alias.returncode != 0:
+            raise ValueError(f"alias style search failed: {alias.stderr.strip()}")
+        alias_payload = json.loads(alias.stdout)
+        if alias_payload.get("count") != 1 or alias_payload["results"][0].get("Style ID") != row["Style ID"]:
+            raise ValueError(f"alias search did not return {row['Style ID']}")
+    negative = subprocess.run(
+        [sys.executable, str(search), "sourdough starter crumb fermentation", "--domain", "style", "--json"],
+        cwd=repo_root,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    if negative.returncode != 0:
+        raise ValueError(f"negative style search failed: {negative.stderr.strip()}")
+    negative_payload = json.loads(negative.stdout)
+    if any(result.get("Style ID") == row["Style ID"] for result in negative_payload.get("results", [])):
+        raise ValueError("negative style search returned the newly registered style")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("normalized", help="Path to normalized.json")
@@ -266,6 +329,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--data-dir", help="Source-of-truth catalog data directory; required with --apply")
     parser.add_argument("--apply", action="store_true", help="Append to data/styles.csv and provenance after confirmation")
     parser.add_argument("--confirm", help="Required with --apply; must equal the final style id")
+    parser.add_argument("--skip-post-apply-validation", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
 
     normalized_path = Path(args.normalized)
@@ -293,12 +357,18 @@ def main(argv: list[str] | None = None) -> int:
         record = provenance_record(normalized_path, normalized, row)
         provenance_out = Path(args.provenance_out) if args.provenance_out else normalized_path.with_name("provenance.draft.json")
         write_json(provenance_out, {"schemaVersion": 1, "generatedAt": utc_now(), "records": [record]})
+        draft_errors = validate_draft_csv(out)
+        provenance_errors = validate_provenance(provenance_out)
+        if draft_errors or provenance_errors:
+            raise ValueError("; ".join(draft_errors + provenance_errors))
         if args.apply:
             if args.confirm != style_id:
                 raise ValueError(f"--apply requires --confirm {style_id}")
             if not args.data_dir:
                 raise ValueError("--apply requires --data-dir pointing at the source-of-truth catalog data directory")
             _apply_row(row, Path(args.data_dir), record)
+            if not args.skip_post_apply_validation:
+                _run_post_apply_validation(Path(args.data_dir), row)
             print(f"Registered style {style_id} into {Path(args.data_dir) / 'styles.csv'}")
         else:
             print(f"Wrote draft style row: {out}")

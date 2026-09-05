@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -87,6 +88,38 @@ def _rank_structural(items: list[Any], key: str) -> list[dict]:
     return sorted(rows, key=lambda row: (-row["count"], row["value"].casefold()))[:12]
 
 
+def _density_label(selected_tokens: dict[str, list[dict]]) -> str:
+    values = [item.get("value", "") for item in selected_tokens.get("spacing", []) if isinstance(item, dict)]
+    numbers: list[float] = []
+    for value in values:
+        match = re.search(r"-?\d+(?:\.\d+)?", str(value))
+        if match:
+            numbers.append(float(match.group(0)))
+    if not numbers:
+        return "standard"
+    median = sorted(numbers)[len(numbers) // 2]
+    if median <= 8:
+        return "dense"
+    if median >= 32:
+        return "spacious"
+    return "standard"
+
+
+def _candidate_style_id(capture_id: str, structural: dict[str, Any], selected_tokens: dict[str, list[dict]]) -> str:
+    layout = "style"
+    if structural.get("layout"):
+        layout = slugify(str(structural["layout"][0]["value"]), "layout")
+    elif structural.get("components"):
+        layout = slugify(str(structural["components"][0]["value"]), "component")
+    density = _density_label(selected_tokens)
+    parts = [slugify(capture_id), layout, density]
+    deduped: list[str] = []
+    for part in parts:
+        if part and (not deduped or deduped[-1] != part):
+            deduped.append(part)
+    return "-".join(deduped)
+
+
 def normalize_capture(payload: dict[str, Any], *, min_count: int = 2) -> dict[str, Any]:
     errors = validate_capture_artifact(payload)
     if errors:
@@ -126,8 +159,8 @@ def normalize_capture(payload: dict[str, Any], *, min_count: int = 2) -> dict[st
         "excludedSignals": excluded,
         "confidence": round(confidence, 2),
         "recommendedStyleId": {
-            "candidate": slugify(payload["captureId"]),
-            "reason": "derived from captureId; review before registration",
+            "candidate": _candidate_style_id(payload["captureId"], structural, selected_tokens),
+            "reason": "derived from captureId, dominant layout/component, and density; review before registration",
         },
     }
     errors = validate_normalized_artifact(normalized)

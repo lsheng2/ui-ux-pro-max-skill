@@ -84,7 +84,9 @@ user-facing catalog actions:
 - `normalize-capture` — convert `capture.json` into reusable selected tokens.
 - `draft-style` — generate `style-row.draft.csv` and `provenance.draft.json`
   without mutating the catalog.
-- `register-style` — explicitly promote a reviewed draft into the
+- `validate-capture` / `validate-style-draft` — check capture, normalized, draft
+  row, and provenance artifacts before promotion.
+- `register-style` / `promote-style` — explicitly promote a reviewed draft into the
   source-of-truth `src/ui-ux-pro-max/data` catalog. Do not register into
   generated mirrors under `.agents`, `.claude`, `.cursor`, `.github/prompts`,
   `.kiro`, or `cli/assets`.
@@ -99,6 +101,10 @@ Use ui-ux-pro-max to capture this repo's dashboard UI and draft a supplemental s
 /ui-ux-pro-max list styles
 /ui-ux-pro-max show style minimalism-and-swiss-style
 ```
+
+After a successful capture, the skill asks whether to `keep draft` or
+`name and register`; registration still requires a final explicit confirmation
+for the exact style ID.
 
 Third-party captures default to `third_party_reference` and must not save or
 copy logos, images, proprietary font files, complete CSS, complete DOM,

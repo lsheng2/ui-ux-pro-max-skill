@@ -208,9 +208,10 @@ Active 集合包括 43 个通用视觉家族、2 个移动端专用风格、3 �
 | 捕获本地 HTML 或项目 UI | `Use ui-ux-pro-max to capture this repo's dashboard UI and draft a supplemental style candidate named internal-dashboard-dense.` |
 | Normalize capture | `Use ui-ux-pro-max to normalize captures/example-dashboard/capture.json and summarize selected versus excluded signals.` |
 | 生成 draft style row | `Use ui-ux-pro-max to draft a style row from captures/example-dashboard/normalized.json.` |
+| 校验 capture 或 draft | `Use ui-ux-pro-max to validate this capture and style draft before promotion.` |
 | 列出 registered + draft styles | `/ui-ux-pro-max list styles` |
 | 查看单个 style | `/ui-ux-pro-max show style minimalism-and-swiss-style` |
-| 注册已审核 draft | `Use ui-ux-pro-max to register the reviewed draft style <style-id> into the source catalog.` |
+| 注册/提升已审核 draft | `Use ui-ux-pro-max to promote the reviewed draft style <style-id> into the source catalog.` |
 
 Capture 流程会先生成可审核 artifact：
 
@@ -219,7 +220,11 @@ Capture 流程会先生成可审核 artifact：
 2. `normalized.json` 选择重复出现的可复用 tokens，并排除一次性长尾值。
 3. `style-row.draft.csv` 与 `provenance.draft.json` 是候选 artifact，只供审核；
    它们不会修改 catalog。
-4. `register-style` 是单独的显式动作。它必须确认准确的 style ID，并且只能写入
+4. Capture 成功后，Skill 必须询问：
+   `Capture is complete. Should this style be automatically named and registered as a supplemental catalog style, or kept as a draft?`
+   选择 `keep draft` 会保留 artifact 并停止；选择 `name and register` 会先展示自动命名的
+   candidate 摘要，再进入最终确认。
+5. `register-style` / `promote-style` 是单独的显式动作。它必须确认准确的 style ID，并且只能写入
    fork/source-of-truth 的 `src/ui-ux-pro-max/data` 目录，不能写入 `.agents`、
    `.claude`、`.cursor`、`.github/prompts`、`.kiro` 或 `cli/assets` 等安装/生成镜像。
 

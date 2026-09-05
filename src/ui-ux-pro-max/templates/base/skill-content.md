@@ -54,12 +54,22 @@ validation results.
 
 | Action | User intent | Internal behavior |
 |--------|-------------|-------------------|
-| `capture-style` | Capture a URL, local HTML file, or project UI as structural design evidence | Run `{{SCRIPT_DIR}}/capture.py`, write `capture.json`, validate it, and summarize source, legal mode, signals, evidence paths, and exclusions |
+| `capture-style` | Capture a URL, local HTML file, or project UI as structural design evidence | Run `{{SCRIPT_DIR}}/capture.py`, validate `capture.json`, then create `normalized.json`, `style-row.draft.csv`, and `provenance.draft.json` before asking the draft-vs-register question |
 | `normalize-capture` | Convert `capture.json` into selected reusable tokens | Run `{{SCRIPT_DIR}}/normalize_capture.py`, write `normalized.json`, and explain selected vs excluded signals |
 | `draft-style` | Create a reviewable catalog candidate | Run `{{SCRIPT_DIR}}/style_from_capture.py` without `--apply`, producing `style-row.draft.csv` and `provenance.draft.json` only |
-| `register-style` | Promote a reviewed draft into the source-of-truth catalog | Ask for explicit confirmation first, resolve the fork/source `src/ui-ux-pro-max/data` directory, then run `{{SCRIPT_DIR}}/style_from_capture.py --apply --confirm <style-id> --data-dir <source-of-truth-data-dir>` or an equivalent reviewed apply step |
+| `register-style` / `promote-style` | Promote a reviewed draft into the source-of-truth catalog | Show the candidate summary, ask for final confirmation first, resolve the fork/source `src/ui-ux-pro-max/data` directory, then run `{{SCRIPT_DIR}}/style_from_capture.py --apply --confirm <style-id> --data-dir <source-of-truth-data-dir>` or an equivalent reviewed apply step |
+| `validate-capture` | Validate `capture.json` or `normalized.json` | Run `{{SCRIPT_DIR}}/validate_capture.py` and report schema/legal-boundary errors |
+| `validate-style-draft` | Validate a draft style row and optional provenance draft | Run `{{SCRIPT_DIR}}/validate_style_draft.py` and report style-row/provenance readiness |
 | `list-styles` | List registered styles plus captured drafts | Run `{{SCRIPT_DIR}}/style_index.py list --include-drafts --captures <captures-dir>` when a captures directory is relevant |
 | `show-style` | Show one registered or draft style by ID | Run `{{SCRIPT_DIR}}/style_index.py show <style-id> --include-drafts --captures <captures-dir>` |
+
+After every successful capture, ask exactly:
+
+```text
+Capture is complete. Should this style be automatically named and registered as a supplemental catalog style, or kept as a draft?
+```
+
+The valid choices are `keep draft` and `name and register`.
 
 Capture and draft are never allowed to mutate `data/styles.csv`. Registration is
 a separate explicit action, and must not run until the user confirms the exact

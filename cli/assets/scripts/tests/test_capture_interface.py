@@ -9,6 +9,7 @@ from functools import partial
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent
@@ -19,6 +20,7 @@ import capture_extractors  # noqa: E402
 import normalize_capture  # noqa: E402
 import style_from_capture  # noqa: E402
 import style_index  # noqa: E402
+import validate_style_draft  # noqa: E402
 from capture_shared import STYLE_HEADERS, read_json, write_csv_rows, write_json  # noqa: E402
 from validate_capture import validate_capture_artifact  # noqa: E402
 
@@ -95,10 +97,10 @@ class StyleIndexTests(unittest.TestCase):
             write_csv_rows(styles, STYLE_HEADERS, [_style_row("registered-style")])
             write_json(capture_dir / "normalized.json", normalize_capture.normalize_capture(_capture_payload()))
             rows = style_index.build_index(styles, root / "captures", True, "all")
-        self.assertIn("fixture-dashboard", {row["styleId"] for row in rows})
+        self.assertIn("fixture-dashboard-grid-dense", {row["styleId"] for row in rows})
         self.assertEqual(
             "draft",
-            next(row for row in rows if row["styleId"] == "fixture-dashboard")["registrationState"],
+            next(row for row in rows if row["styleId"] == "fixture-dashboard-grid-dense")["registrationState"],
         )
 
     def test_marks_draft_registered_id_conflict(self):
@@ -322,6 +324,7 @@ class StyleFromCaptureTests(unittest.TestCase):
                         "--data-dir", str(data),
                         "--apply",
                         "--confirm", "registered-style-child",
+                        "--skip-post-apply-validation",
                     ])
                     _, rows = style_from_capture.read_csv_rows(styles)
                     self.assertEqual(1, exit_code)
@@ -345,6 +348,7 @@ class StyleFromCaptureTests(unittest.TestCase):
                 "--data-dir", str(data),
                 "--apply",
                 "--confirm", "registered-style-child",
+                "--skip-post-apply-validation",
             ])
             _, rows = style_from_capture.read_csv_rows(styles)
             provenance = read_json(data / "data-provenance.json")
@@ -352,7 +356,51 @@ class StyleFromCaptureTests(unittest.TestCase):
         self.assertEqual(0, exit_code)
         self.assertEqual(["registered-style", "registered-style-child"], [row["Style ID"] for row in rows])
         self.assertEqual("registered-style-child", provenance["records"][0]["entityId"])
+        self.assertEqual("owned", provenance["records"][0]["legalMode"])
         self.assertEqual(2, summary["counts"]["styles"]["total"])
+
+    def test_validate_style_draft_accepts_generated_draft_and_provenance(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            normalized = root / "captures" / "fixture" / "normalized.json"
+            draft = normalized.with_name("style-row.draft.csv")
+            provenance = normalized.with_name("provenance.draft.json")
+            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
+            exit_code = style_from_capture.main([
+                str(normalized),
+                "--style-id", "draft-style",
+                "--parent-style-id", "registered-style",
+                "--aliases", "Draft Alias",
+            ])
+            errors = (
+                validate_style_draft.validate_draft_csv(draft, register_ready=True)
+                + validate_style_draft.validate_provenance(provenance)
+            )
+        self.assertEqual(0, exit_code)
+        self.assertEqual([], errors)
+
+    def test_register_runs_post_apply_validation_by_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "data"
+            data.mkdir()
+            styles = data / "styles.csv"
+            normalized = root / "captures" / "fixture" / "normalized.json"
+            write_csv_rows(styles, STYLE_HEADERS, [_style_row("registered-style")])
+            write_json(data / "catalog-summary.json", {"schemaVersion": 1, "verifiedAt": "2026-09-05", "counts": {}})
+            write_json(data / "data-provenance.json", {"schemaVersion": 1, "records": []})
+            write_json(normalized, normalize_capture.normalize_capture(_capture_payload()))
+            with patch.object(style_from_capture, "_run_post_apply_validation") as validator:
+                exit_code = style_from_capture.main([
+                    str(normalized),
+                    "--style-id", "registered-style-child",
+                    "--parent-style-id", "registered-style",
+                    "--data-dir", str(data),
+                    "--apply",
+                    "--confirm", "registered-style-child",
+                ])
+        self.assertEqual(0, exit_code)
+        validator.assert_called_once()
 
 
 if __name__ == "__main__":

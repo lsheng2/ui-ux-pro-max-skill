@@ -72,16 +72,40 @@ def _draft_from_normalized(path: Path) -> list[dict[str, Any]]:
     return [_public_row(row, path, "draft")]
 
 
-def draft_styles(captures_dir: Path) -> list[dict[str, Any]]:
+def _applied_capture_dirs(registered: Path) -> set[Path]:
+    provenance_path = registered.with_name("data-provenance.json")
+    if not provenance_path.exists():
+        return set()
+    source_root = registered.parent.parent
+    payload = read_json(provenance_path)
+    applied: set[Path] = set()
+    for record in payload.get("records", []):
+        if not isinstance(record, dict):
+            continue
+        for source in record.get("sources", []):
+            if not isinstance(source, dict):
+                continue
+            ref = str(source.get("ref") or "").split("#", 1)[0]
+            if ref.startswith("captures/") and ref.endswith("/normalized.json"):
+                applied.add((source_root / ref).resolve().parent)
+    return applied
+
+
+def draft_styles(captures_dir: Path, applied_capture_dirs: set[Path] | None = None) -> list[dict[str, Any]]:
     if not captures_dir.exists():
         return []
     drafts: list[dict[str, Any]] = []
     dirs_with_rows: set[Path] = set()
+    applied = applied_capture_dirs or set()
     for name in ("style-row.csv", "style-row.draft.csv"):
         for path in sorted(captures_dir.rglob(name)):
+            if path.parent.resolve() in applied:
+                continue
             drafts.extend(_draft_from_csv(path))
             dirs_with_rows.add(path.parent)
     for path in sorted(captures_dir.rglob("normalized.json")):
+        if path.parent.resolve() in applied:
+            continue
         if path.parent not in dirs_with_rows:
             try:
                 drafts.extend(_draft_from_normalized(path))
@@ -94,7 +118,7 @@ def build_index(registered: Path, captures: Path | None, include_drafts: bool, s
     rows = registered_styles(registered)
     registered_by_id = {row["styleId"]: row for row in rows}
     if include_drafts and captures:
-        for draft in draft_styles(captures):
+        for draft in draft_styles(captures, _applied_capture_dirs(registered)):
             conflict = registered_by_id.get(draft["styleId"])
             if conflict:
                 draft["registrationState"] = "conflict"

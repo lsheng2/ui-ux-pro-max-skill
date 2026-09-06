@@ -26,13 +26,13 @@
       },
       {
         "name": "--color-muted",
-        "value": "#111827",
+        "value": "#10b981",
         "count": 3
       },
       {
         "name": "--color-border",
-        "value": "#991b1b",
-        "count": 2
+        "value": "#111827",
+        "count": 3
       }
     ],
     "typography": [
@@ -50,6 +50,11 @@
         "name": "--font-size-control",
         "value": "0.875rem",
         "count": 4
+      },
+      {
+        "name": "--font-size-micro",
+        "value": "0.6875rem",
+        "count": 2
       }
     ],
     "spacing": [

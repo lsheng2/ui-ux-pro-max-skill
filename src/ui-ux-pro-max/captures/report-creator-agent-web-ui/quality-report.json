@@ -18,11 +18,11 @@
   },
   "evidence": {
     "normalizedPath": "src/ui-ux-pro-max/captures/report-creator-agent-web-ui/normalized.json",
-    "normalizedSha256": "1a6cfa7e8be27ef5eb5361db0c47a5e214f2eef16cdd0fa6097e10832f80dd19",
+    "normalizedSha256": "8708e016fb99ad89d7d7aaf1f183aac80b75a081bd8c3f56eac938c46fc61171",
     "capturePath": "src/ui-ux-pro-max/captures/report-creator-agent-web-ui/capture.json",
-    "captureSha256": "dd52724db5006cb1332c740c64f2813679bd62cfeab21df695422f7de38bdded",
+    "captureSha256": "fdfb0982e8da40fdc71bd6a9d244192ed9274119e1fa11c016d5fe638fbe3d05",
     "provenancePath": "src/ui-ux-pro-max/captures/report-creator-agent-web-ui/provenance.draft.json",
-    "provenanceSha256": "d92eef91cd2796195decfd68ffd08ddf4bfc36e170652ae34e4693e3f5020b4d"
+    "provenanceSha256": "a2e7c8db548d3daefd731956416fe66c77aa3e8696f33f4e02337a9e020bba3e"
   },
   "contrastPairs": [
     {
@@ -32,9 +32,9 @@
       "passesTextAA": true
     },
     {
-      "foreground": "#e5e7eb",
-      "background": "#991b1b",
-      "ratio": 6.71,
+      "foreground": "#10b981",
+      "background": "#111827",
+      "ratio": 6.99,
       "passesTextAA": true
     },
     {
@@ -62,15 +62,15 @@
       "passesTextAA": false
     },
     {
-      "foreground": "#e5e7eb",
-      "background": "#0d9488",
-      "ratio": 3.02,
+      "foreground": "#065f46",
+      "background": "#10b981",
+      "ratio": 3.03,
       "passesTextAA": false
     },
     {
-      "foreground": "#065f46",
-      "background": "#111827",
-      "ratio": 2.31,
+      "foreground": "#e5e7eb",
+      "background": "#0d9488",
+      "ratio": 3.02,
       "passesTextAA": false
     }
   ]

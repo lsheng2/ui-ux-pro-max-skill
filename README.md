@@ -188,12 +188,12 @@ chips, badges, and interrupted micro-interactions:
 
 ### Style Taxonomy
 
-The catalog contains **79 searchable styles** backed by stable IDs and aliases:
+The catalog contains **80 searchable styles** backed by stable IDs and aliases:
 
 | Status | Count | Search behavior |
 |--------|------:|-----------------|
 | Active | 50 | Included in normal recommendations and shown by default in the gallery |
-| Supplemental | 29 | Returned for exact or explicit variant/system intent; available through the gallery status filter |
+| Supplemental | 30 | Returned for exact or explicit variant/system intent; available through the gallery status filter |
 | Deprecated | 9 | Excluded from normal ranking; legacy names redirect to a canonical style or landing pattern |
 
 The active set covers 43 general visual families, 2 mobile-specific styles, 3 official platform/design systems, 1 platform material, and 1 core analytics style. Current official systems include Fluent 2, Shopify Polaris, and Adobe Spectrum; Liquid Glass is scoped as an Apple platform material, Material 3 Expressive remains a mobile Material variant, and Spectrum 2 is supplemental. Landing-page structures live in the separate 34-pattern landing dataset rather than competing with visual styles in BM25 ranking.

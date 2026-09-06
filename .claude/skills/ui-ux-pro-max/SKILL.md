@@ -1,11 +1,11 @@
 ---
 name: ui-ux-pro-max
-description: "UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 79 searchable styles (50 active), 192 product palettes and reasoning profiles, 74 font pairings, 119 UX guidelines, 105 icons, 17 GSAP presets, 25 chart types, and 22 stacks."
+description: "UI/UX design intelligence for web, mobile, and desktop. This skill should be used when designing, building, reviewing, or fixing interfaces, including pages, components, design systems, accessibility, interaction, responsive layout, typography, color, charts, and stack-specific UI implementation. Searchable local data: 80 searchable styles (50 active), 192 product palettes and reasoning profiles, 74 font pairings, 119 UX guidelines, 105 icons, 17 GSAP presets, 25 chart types, and 22 stacks."
 ---
 
 # UI/UX Pro Max - Design Intelligence
 
-Searchable local UI/UX guidance: 79 searchable styles (50 active), 192 product palettes and exact reasoning profiles, 74 font pairings, 119 UX guidelines, 105 curated icons, 17 GSAP presets, 25 chart types, and 22 technology stacks.
+Searchable local UI/UX guidance: 80 searchable styles (50 active), 192 product palettes and exact reasoning profiles, 74 font pairings, 119 UX guidelines, 105 curated icons, 17 GSAP presets, 25 chart types, and 22 technology stacks.
 
 ## When to Apply
 
@@ -86,8 +86,18 @@ style ID already exists in `data/styles.csv`, list it as
 do not overwrite or hide either side.
 
 For `update-captured-style`, preserve the existing `Style ID` unless the user
-explicitly confirms a rename. Re-capture from the provided URL, local HTML, or
-project UI, regenerate normalized signals and a candidate row, then show the
+explicitly confirms a rename. Preserve the existing capture identity/root by
+default as well: the refreshed evidence for a registered style should replace
+the same `captures/<capture-id>/capture.json` and `normalized.json`, while any
+previous evidence snapshot must be moved outside the `captures/` draft scan root
+(for example `backups/registered-style-snapshots/<capture-id>-<date>/`) if the
+user wants a backup. Backups are recovery artifacts only: do not register them,
+do not place them under `captures/`, and do not sync them into generated or
+installed skill copies.
+Do not write provenance refs to a new dated capture ID unless the corresponding
+capture artifacts are created and the user explicitly wants a versioned capture.
+Re-capture from the provided URL, local HTML, or project UI, regenerate
+normalized signals and a candidate row, then show the
 old-vs-new differences for `Best For`, `Do Not Use For`, keywords, colors,
 design variables, accessibility/performance metadata, provenance source, and
 quality readiness. Do not replace the registered row, provenance record, or

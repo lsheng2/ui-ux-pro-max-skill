@@ -127,6 +127,26 @@ class StyleIndexTests(unittest.TestCase):
         conflict = next(row for row in rows if row["registrationState"] == "conflict")
         self.assertEqual("same-style", conflict["conflictsWith"]["styleId"])
 
+    def test_hides_capture_draft_after_registered_provenance_consumes_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            data = root / "data"
+            styles = data / "styles.csv"
+            captures = root / "captures"
+            normalized = _write_capture_set(root)
+            data.mkdir()
+            write_csv_rows(styles, STYLE_HEADERS, [_style_row("fixture-dashboard-grid-dense", "supplemental")])
+            write_json(data / "data-provenance.json", {
+                "schemaVersion": 1,
+                "records": [{
+                    "entityKind": "style",
+                    "entityId": "fixture-dashboard-grid-dense",
+                    "sources": [{"type": "derived", "ref": "captures/fixture/normalized.json#captureId=fixture-dashboard"}],
+                }],
+            })
+            rows = style_index.build_index(styles, captures, True, "all")
+        self.assertEqual(["registered"], [row["registrationState"] for row in rows if row["styleId"] == "fixture-dashboard-grid-dense"])
+
     def test_active_status_filter_keeps_conflicting_draft_side(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

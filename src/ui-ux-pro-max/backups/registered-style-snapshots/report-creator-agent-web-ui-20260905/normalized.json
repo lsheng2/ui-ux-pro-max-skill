@@ -1,183 +1,180 @@
 {
   "schemaVersion": 1,
   "captureId": "report-creator-agent-web-ui",
-  "capturedAt": "2026-09-06T00:00:00Z",
-  "source": {
-    "kind": "project",
-    "value": "report-creator-agent-web-ui",
-    "legalMode": "owned"
-  },
-  "viewports": [
-    {
-      "width": 1440,
-      "height": 1000,
-      "label": "desktop"
-    }
-  ],
-  "signals": {
+  "legalMode": "owned",
+  "selectedTokens": {
     "colors": [
       {
+        "name": "--color-text",
         "value": "#6b7280",
-        "count": 8,
-        "source": "literal"
+        "count": 8
       },
       {
+        "name": "--color-surface",
         "value": "#e5e7eb",
-        "count": 6,
-        "source": "literal"
+        "count": 6
       },
       {
+        "name": "--color-accent",
         "value": "#0d9488",
-        "count": 4,
-        "source": "literal"
+        "count": 4
       },
       {
+        "name": "--color-accent-strong",
         "value": "#065f46",
-        "count": 3,
-        "source": "literal"
+        "count": 3
       },
       {
-        "value": "#10b981",
-        "count": 3,
-        "source": "literal"
-      },
-      {
+        "name": "--color-muted",
         "value": "#111827",
-        "count": 3,
-        "source": "literal"
+        "count": 3
+      },
+      {
+        "name": "--color-border",
+        "value": "#991b1b",
+        "count": 2
       }
     ],
     "typography": [
       {
+        "name": "--font-size-body",
         "value": "0.8125rem",
-        "role": "font-size",
         "count": 6
       },
       {
+        "name": "--font-size-caption",
         "value": "0.75rem",
-        "role": "font-size",
         "count": 5
       },
       {
+        "name": "--font-size-control",
         "value": "0.875rem",
-        "role": "font-size",
         "count": 4
-      },
-      {
-        "value": "0.6875rem",
-        "role": "font-size",
-        "count": 2
       }
     ],
     "spacing": [
       {
+        "name": "--space-compact",
         "value": "0.5rem",
         "count": 8
       },
       {
+        "name": "--space-section",
         "value": "1rem",
         "count": 6
       },
       {
+        "name": "--space-control",
         "value": "0.75rem",
         "count": 5
       },
       {
+        "name": "--space-tight",
         "value": "0.25rem",
         "count": 3
       }
     ],
     "radius": [
       {
+        "name": "--radius-control",
         "value": "6px",
         "count": 5
       },
       {
+        "name": "--radius-panel",
         "value": "0.75rem",
         "count": 3
       },
       {
+        "name": "--radius-card",
         "value": "10px",
-        "count": 2
-      },
-      {
-        "value": "3px",
         "count": 2
       }
     ],
     "shadows": [],
     "motion": [
       {
+        "name": "--motion-fast",
         "value": "background 0.15s",
         "count": 3
       }
-    ],
+    ]
+  },
+  "structuralSignals": {
     "components": [
       {
-        "role": "form",
+        "value": "button",
         "count": 5
       },
       {
-        "role": "button",
+        "value": "form",
         "count": 5
       },
       {
-        "role": "card",
+        "value": "card",
         "count": 4
       },
       {
-        "role": "topbar",
+        "value": "tabs",
         "count": 3
       },
       {
-        "role": "tabs",
+        "value": "topbar",
         "count": 3
       }
     ],
     "layout": [
       {
-        "pattern": "flex",
+        "value": "flex",
         "count": 7
       },
       {
-        "pattern": "dense",
+        "value": "dense",
         "count": 5
       },
       {
-        "pattern": "grid",
+        "value": "grid",
         "count": 4
       },
       {
-        "pattern": "responsive",
+        "value": "responsive",
         "count": 3
       }
     ],
     "accessibility": [
       {
-        "signal": "aria-attributes",
+        "value": "aria-attributes",
         "count": 3
       }
-    ]
-  },
-  "evidence": {
-    "screenshots": [],
-    "sampledSelectors": [
-      ".topbar",
-      ".tabs",
-      ".card",
-      ".form",
-      ".button"
     ],
-    "sourceFiles": [
+    "source": {
+      "kind": "project",
+      "value": "report-creator-agent-web-ui",
+      "legalMode": "owned"
+    },
+    "viewports": [
       {
-        "path": "report-creator-agent-web-ui update capture session"
+        "width": 1440,
+        "height": 1000,
+        "label": "desktop"
       }
     ]
   },
-  "exclusions": [
+  "excludedSignals": [
+    {
+      "group": "radius",
+      "value": "3px",
+      "count": 2,
+      "reason": "beyond supported token slots"
+    },
     {
       "group": "capture",
       "reason": "No copied brand assets, binary images, proprietary fonts, full CSS, full DOM, or marketing copy are stored in this source-controlled evidence artifact."
     }
-  ]
+  ],
+  "confidence": 0.87,
+  "recommendedStyleId": {
+    "candidate": "report-creator-agent-web-ui-flex-dense",
+    "reason": "derived from captureId, dominant layout/component, and density; review before registration"
+  }
 }
